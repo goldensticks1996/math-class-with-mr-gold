@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Class with Mr. Gold</title>
+    <link rel="icon" type="image/png" href="img/logo.png">
+    <!-- PDF.js Library for reading PDFs in browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="card">
+
+    <!-- GLOBAL HEADER ON EVERY SCREEN -->
+    <div class="app-header">
+        <img src="img/logo.png" alt="Logo" style="height:56px;vertical-align:middle;margin-right:10px;">
+        <h1 class="app-title" style="display:inline-block;vertical-align:middle;">Math Class with <span>Mr. Gold</span></h1>
+    </div>
+
+    <!-- 1. WELCOME & LOGIN / REGISTER SCREEN -->
+    <div id="login-screen">
+        <p class="app-subtitle" style="text-align: center; margin-bottom: 20px;">
+            <strong>Welcome to Math Class with Mr. Gold!</strong><br>
+            Fill in your credentials below to log in, or register if you don't have an account.
+        </p>
+
+        <div class="tab-btn-group">
+            <button onclick="switchAuthMode('login')">Login</button>
+            <button class="btn-gold" onclick="switchAuthMode('register')">Register New Account</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="auth-login-form">
+            <div class="form-group">
+                <label>Login As:</label>
+                <select id="login-role">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" id="username" placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+            <button onclick="handleLogin()">Login to Portal</button>
+        </div>
+
+        <!-- Registration Form -->
+        <div id="auth-register-form" class="hidden">
+            <h4>Create an Account</h4>
+            <div class="form-group">
+                <label>Register As:</label>
+                <select id="reg-role" onchange="toggleRegisterRoleFields()">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+            </div>
+
+            <!-- Student Registration Fields -->
+            <div id="student-reg-fields">
+                <div class="form-group">
+                    <label>Username / Full Name:</label>
+                    <input type="text" id="reg-username" placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="reg-password" placeholder="Choose a password">
+                </div>
+                <button class="btn-gold" onclick="handleStudentRegister()">Complete Student Registration</button>
+            </div>
+
+            <!-- Teacher Registration Fields -->
+            <div id="teacher-reg-fields" class="hidden">
+                <div class="form-group">
+                    <label>Full Name:</label>
+                    <input type="text" id="reg-teacher-fullname" placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="reg-teacher-username" placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="reg-teacher-password" placeholder="Choose a password">
+                </div>
+                <button class="btn-gold" onclick="handleTeacherRegister()">Complete Teacher Registration</button>
+            </div>
+        </div>
+
+        <p id="login-error" style="color: #d9534f; text-align: center; margin-top: 12px; font-weight: 600;"></p>
+        <p id="login-msg" style="color: #28a745; text-align: center; margin-top: 12px; font-weight: 600;"></p>
+    </div>
+
+    <!-- 2. ADMIN DASHBOARD -->
+    <div id="admin-dashboard" class="hidden">
+        <div class="nav-header">
+            <h3>Admin Dashboard</h3>
+            <button class="btn-secondary" onclick="logout()">Logout</button>
+        </div>
+        <h4>Pending Teacher Approvals</h4>
+        <div style="max-height: 350px; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Teacher Name</th>
+                        <th>Username</th>
+                        <th>Registration Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-teachers-body"></tbody>
+            </table>
+        </div>
+        <p id="admin-msg" style="color: #28a745; font-weight: bold; text-align: center; margin-top: 15px;"></p>
+        <p id="admin-error" style="color: #d9534f; font-weight: bold; text-align: center; margin-top: 15px;"></p>
+
+        <hr style="border:0;border-top:2px dashed #e2e8ff;margin:25px 0;">
+
+        <h4>Student Report Cards</h4>
+        <p style="font-size:13px;color:#666;margin-bottom:12px;">
+            As admin you can generate a full report card for any student, covering every subject and every teacher.
+        </p>
+        <div class="form-group">
+            <label>Select Student:</label>
+            <select id="admin-report-student" onchange="refreshAdminReportSubjects()"></select>
+        </div>
+        <div id="admin-report-subjects" style="margin-bottom:15px;"></div>
+        <div class="form-group">
+            <label>Remark:</label>
+            <textarea id="admin-report-remark" rows="3" placeholder="Overall remark to print on the report card..."></textarea>
+        </div>
+        <button style="background:#7c5cff;box-shadow:0 3px 0 #6142cc;" onclick="generateAdminReportCard()">Download Report Card</button>
+    </div>
+
+    <!-- 3. TEACHER DASHBOARD -->
+    <div id="teacher-dashboard" class="hidden">
+        <div class="nav-header">
+            <h3>Teacher Control Panel</h3>
+            <button class="btn-secondary" onclick="logout()">Logout</button>
+        </div>
+
+        <!-- Target Student Selection -->
+        <div style="background: #f8f9fa; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div class="form-group">
+                <label>Select Target Student for Assignment/Grades:</label>
+                <select id="assign-student" onchange="handleStudentSelectionChange()"></select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Test Time Limit (Minutes) - used when you create a test below:</label>
+                <input type="number" id="quiz-duration" value="15" min="1" max="180">
+            </div>
+        </div>
+
+        <!-- Mode Toggle Tabs -->
+        <div class="tab-btn-group">
+            <button onclick="switchTeacherTab('manual')">Manual Questions</button>
+            <button class="btn-secondary" onclick="switchTeacherTab('pdf')">PDF Upload</button>
+            <button class="btn-info" onclick="switchTeacherTab('gradebook')">Gradebook</button>
+            <button class="btn-gold" onclick="switchTeacherTab('roster')">Registered Students</button>
+            <button class="btn-success" onclick="switchTeacherTab('qbank')">Question Bank</button>
+            <button style="background:#7c5cff;box-shadow:0 3px 0 #6142cc;" onclick="switchTeacherTab('report')">Report Card</button>
+        </div>
+
+        <!-- Manual Creator Form -->
+        <div id="manual-tab">
+            <h4 id="manual-form-title">Create Question (Options A to E)</h4>
+            <input type="hidden" id="edit-q-id" value="">
+            <div class="form-group">
+                <label>Question:</label>
+                <input type="text" id="q-text" placeholder="Enter question statement">
+            </div>
+            <div class="form-group">
+                <label>Add Image / Diagram (Optional):</label>
+                <div class="img-upload-box">
+                    <input type="file" id="q-image-file" accept="image/png, image/jpeg, image/webp" onchange="handleManualImageSelect(event)">
+                    <div id="q-image-preview-box" class="img-preview-wrap hidden">
+                        <img id="q-image-preview-img" src="" alt="Preview">
+                        <button type="button" class="btn-danger" style="padding: 6px 12px; width: auto; margin-top: 8px; font-size: 12px;" onclick="removeManualImage()">Remove Image</button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Options A through E:</label>
+                <input type="text" id="opt-a" placeholder="Option A" style="margin-bottom: 5px;">
+                <input type="text" id="opt-b" placeholder="Option B" style="margin-bottom: 5px;">
+                <input type="text" id="opt-c" placeholder="Option C" style="margin-bottom: 5px;">
+                <input type="text" id="opt-d" placeholder="Option D" style="margin-bottom: 5px;">
+                <input type="text" id="opt-e" placeholder="Option E">
+            </div>
+            <div class="form-group">
+                <label>Correct Answer Key:</label>
+                <select id="correct-opt">
+                    <option value="0">Option A</option>
+                    <option value="1">Option B</option>
+                    <option value="2">Option C</option>
+                    <option value="3">Option D</option>
+                    <option value="4">Option E</option>
+                </select>
+            </div>
+            <button id="save-q-btn" onclick="saveManualQuestion()">Save Question to Quiz</button>
+            <button id="cancel-edit-btn" class="btn-secondary hidden" onclick="cancelQuestionEdit()">Cancel Edit</button>
+        </div>
+
+        <!-- PDF Upload Form -->
+        <div id="pdf-tab" class="hidden">
+            <h4>Upload Math Questions PDF</h4>
+            <p style="font-size:13px;color:#667;margin-bottom:12px;">
+                For the most reliable results (especially with diagrams), format your PDF using the
+                <strong>Math Class PDF Template</strong> guide you were given. Any PDF will be attempted either way.
+            </p>
+            <div class="pdf-box">
+                <input type="file" id="pdf-file-input" accept="application/pdf">
+                <button onclick="processPDF()" style="margin-top: 15px;">Read PDF File</button>
+            </div>
+            <div id="pdf-summary-box" class="import-summary hidden"></div>
+            <div id="pdf-review-list"></div>
+            <button id="pdf-save-all-btn" class="btn-success hidden" onclick="saveAllImportedQuestions()">Save All To Question Bank</button>
+        </div>
+
+        <!-- Gradebook & Remarks Tab -->
+        <div id="gradebook-tab" class="hidden">
+            <h4>Student Performance Gradebook</h4>
+            <div style="margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px;">
+                <p><strong>Latest Quiz Score:</strong> <span id="gb-score-display">No record</span></p>
+                <p><strong>Completion Date:</strong> <span id="gb-date-display">N/A</span></p>
+            </div>
+
+            <div class="form-group">
+                <label>Teacher's Monthly Performance Remark:</label>
+                <textarea id="gb-remark-input" rows="3" placeholder="Enter evaluation comments or grades for Mr. Gold's class..."></textarea>
+            </div>
+
+            <button class="btn-success" onclick="saveGradebookRemark()">Save Performance Remark</button>
+            <button class="btn-info" onclick="downloadStudentReport()" style="margin-top: 10px;">Download Academic Report (.txt)</button>
+        </div>
+
+        <!-- REGISTERED STUDENTS & PASSWORD RETRIEVAL TAB -->
+        <div id="roster-tab" class="hidden">
+            <h4>Student Roster & Credentials</h4>
+            <div class="stat-card">
+                <strong>Total Registered Students: </strong> <span id="total-student-count">0</span>
+            </div>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr><th>Student Name</th><th>Password</th></tr>
+                    </thead>
+                    <tbody id="student-roster-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- REPORT CARD TAB -->
+        <div id="report-tab" class="hidden">
+            <h4>Generate Student Report Card</h4>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">
+                Uses the student selected at the top of this page. Shows every subject this student has completed a
+                test in, across all their teachers - pick which ones to include.
+            </p>
+            <div id="teacher-report-subjects" style="margin-bottom:15px;"></div>
+            <div class="form-group">
+                <label>Remark:</label>
+                <textarea id="teacher-report-remark" rows="3" placeholder="Overall remark to print on the report card..."></textarea>
+            </div>
+            <button style="background:#7c5cff;box-shadow:0 3px 0 #6142cc;" onclick="generateTeacherReportCard()">Download Combined Copy</button>
+            <button class="btn-gold" onclick="sendPopQuizToPortal()">Send Pop Quiz Selected to Portal</button>
+            <button class="btn-success" onclick="sendMonthlyToPortal()">Send Monthly Selected to Portal</button>
+        </div>
+
+        <!-- QUESTION BANK TAB -->
+        <div id="qbank-tab" class="hidden">
+            <h4>Question Bank</h4>
+            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                Unassigned questions you've created or imported. Select some and turn them into a test below.
+            </p>
+
+            <div class="qb-toolbar">
+                <div class="qb-toolbar-left">
+                    <input type="checkbox" id="qb-select-all" onchange="toggleSelectAll(this.checked)">
+                    <label for="qb-select-all" style="margin-bottom: 0; cursor: pointer;">SELECT ALL</label>
+                </div>
+                <div class="qb-toolbar-right">
+                    <button class="btn-secondary" onclick="renderQuestionBank()">Refresh Questions</button>
+                    <button class="btn-danger" onclick="deleteSelectedQuestions()">Delete Selected</button>
+                    <button class="btn-danger" style="background: #a71d2a;" onclick="deleteAllStudentQuestions()">Delete All Questions</button>
+                </div>
+            </div>
+
+            <div id="qb-questions-list" style="max-height: 400px; overflow-y: auto; padding-right: 5px;"></div>
+
+            <div style="background: #eef2f7; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                <h4 style="margin-bottom: 10px;">Create & Assign Test From Selected</h4>
+                <div class="form-group">
+                    <label>Test Title:</label>
+                    <input type="text" id="test-title" placeholder="e.g. Fractions Quiz - Week 3">
+                </div>
+                <div class="form-group">
+                    <label>Subject:</label>
+                    <input type="text" id="test-subject" placeholder="e.g. Mathematics, Science, English..." value="Mathematics">
+                </div>
+                <div class="form-group">
+                    <label>Test Type:</label>
+                    <select id="test-assessment-type">
+                        <option value="monthly">Monthly Assessment (combines with other teachers on the student's portal)</option>
+                        <option value="pop_quiz">Pop Quiz (its own separate report card)</option>
+                    </select>
+                </div>
+                <p style="font-size:12px;color:#666;margin-top:-8px;margin-bottom:10px;">
+                    Uses the time limit and student selected at the top of this page.
+                </p>
+                <button class="btn-gold" onclick="createTestFromSelected()">Create Test From Selected & Assign</button>
+            </div>
+
+            <h4 style="margin-top: 25px;">My Tests</h4>
+            <div id="my-assessments-list"></div>
+        </div>
+
+        <p id="teacher-msg" style="color: #28a745; font-weight: bold; text-align: center; margin-top: 15px; white-space: pre-line;"></p>
+    </div>
+
+    <!-- 4. STUDENT DASHBOARD -->
+    <div id="student-dashboard" class="hidden">
+        <div class="nav-header">
+            <h3 id="student-welcome">Welcome</h3>
+            <button class="btn-secondary" onclick="logout()">Logout</button>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;"><br>
+
+        <div class="tab-btn-group">
+            <button onclick="switchStudentView('tests')">My Tests</button>
+            <button class="btn-secondary" onclick="switchStudentView('reports')">My Report Cards</button>
+        </div>
+
+        <div id="student-tests-view">
+            <div id="available-tests-list"></div>
+
+            <div id="quiz-container" class="hidden">
+                <div style="text-align: right; margin-bottom: 15px;">
+                    <span class="timer-badge">Time Remaining: <span id="timer-text">00:00</span></span>
+                </div>
+                <h4 id="question-title">Loading question...</h4>
+                <div id="question-image-box" class="q-diagram-container hidden">
+                    <img id="question-img" class="q-diagram-img" src="" alt="Question Diagram">
+                </div>
+                <div id="options-container" style="margin-top: 15px;"></div>
+            </div>
+            <div id="quiz-results" class="hidden">
+                <div id="result-emoji" class="result-emoji">🎉</div>
+                <h3 style="text-align:center;">Quiz Completed!</h3>
+                <p id="score-text" style="font-size: 18px; margin-top: 10px; font-weight: 600; color: #2c46b8; text-align:center;"></p>
+                <button onclick="restartQuiz()">Back to My Tests</button>
+            </div>
+        </div>
+
+        <div id="student-reports-view" class="hidden">
+            <h4>Pop Quiz Report Cards</h4>
+            <p style="font-size:12px;color:#666;margin-bottom:10px;">One per teacher, per pop quiz sent - up to the most recent 6 per teacher.</p>
+            <div id="my-popquiz-reports"></div>
+
+            <h4 style="margin-top:20px;">Monthly Report Cards</h4>
+            <p style="font-size:12px;color:#666;margin-bottom:10px;">Combines every teacher's monthly results for that period - up to the most recent 6 periods.</p>
+            <div id="my-monthly-reports"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- App modules, loaded in dependency order -->
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/questionBank.js"></script>
+<script src="js/assessments.js"></script>
+<script src="js/pdfImport.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/reportCard.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
